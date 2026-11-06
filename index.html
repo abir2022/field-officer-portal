@@ -1,156 +1,376 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>NexaField — Field Officer Performance Portal (DEMO)</title>
 <meta name="description" content="Client-side demo of a field officer performance portal: officer directory and assignments, KPI trends, review scoring and an overview dashboard. Synthetic data only, no backend." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
+  /* ============================ DESIGN TOKENS ============================
+     Dark-first navy app shell. Fira Code for figures/headings, Fira Sans for prose.
+     Legacy aliases at the bottom keep inline styles in the render layer alive.     */
   :root{
-    --bg:#eef2f7; --panel:#ffffff; --ink:#0f172a; --muted:#64748b; --faint:#94a3b8;
-    --line:#e2e8f0; --line-soft:#eef2f7;
-    --brand:#4f46e5; --brand-ink:#4338ca; --brand-soft:#eef2ff;
-    --accent:#0ea5e9; --amber:#f59e0b;
-    --good:#0a7d33; --good-soft:#e7f6ec; --bad:#c0392b; --bad-soft:#fdeceb;
-    --warn:#b45309; --warn-soft:#fef3e2;
-    --radius:14px; --radius-sm:10px;
-    --shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.06);
-    --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+    color-scheme:dark;
+    --bg:#0F172A; --surface:#111827; --surface-2:#1E293B; --line:#334155;
+    --ink:#F8FAFC; --ink-2:#CBD5E1; --ink-3:#94A3B8;
+    --brand:#1E40AF; --brand-2:#3B82F6; --accent:#D97706; --accent-2:#F59E0B;
+    --ok:#10B981; --warn:#F59E0B; --bad:#DC2626;
+    --r-sm:8px; --r-md:12px; --r-lg:16px;
+    --sp-1:8px; --sp-2:16px; --sp-3:24px; --sp-4:32px; --sp-5:48px;
+    --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 24px rgba(0,0,0,.35);
+    --font-head:'Fira Code',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --font-body:'Fira Sans',system-ui,-apple-system,"Segoe UI",sans-serif;
+    --hover:rgba(148,163,184,.06);
+    --ring:rgba(59,130,246,.45);
+    --grid-line:rgba(148,163,184,.15);
+    --tb-h:62px; --topbar-bg:rgba(17,24,39,.9);
+    /* chart palette — fixed order, blue + amber + green only */
+    --c1:#3B82F6; --c2:#D97706; --c3:#10B981; --c4:rgba(248,250,252,.8);
+    --c5:#60A5FA; --c6:#FBBF24; --c7:#34D399; --c8:#94A3B8;
+    /* soft tints (12-15% alpha) */
+    --brand-soft:rgba(59,130,246,.14); --good-soft:rgba(16,185,129,.14);
+    --bad-soft:rgba(220,38,38,.15); --warn-soft:rgba(245,158,11,.15);
+    --accent-soft:rgba(217,119,6,.16);
+    --bad-ink:#F87171; /* status red that clears 4.5:1 on dark surfaces */
+    /* legacy aliases consumed by the render layer */
+    --panel:var(--surface); --muted:var(--ink-2); --faint:var(--ink-3);
+    --line-soft:rgba(51,65,85,.65); --brand-ink:#93C5FD;
+    --good:var(--ok); --amber:var(--accent-2);
+    --radius:var(--r-md); --radius-sm:var(--r-sm);
+    --shadow:var(--shadow-1); --shadow-sm:var(--shadow-1);
+  }
+  [data-theme="light"]{
+    color-scheme:light;
+    --bg:#F1F5F9; --surface:#FFFFFF; --surface-2:#F8FAFC; --line:#CBD5E1;
+    --ink:#0F172A; --ink-2:#334155; --ink-3:#475569;
+    --brand:#1E3A8A; --brand-2:#1D4ED8; --accent:#B45309; --accent-2:#D97706;
+    --ok:#047857; --warn:#B45309; --bad:#B91C1C;
+    --hover:rgba(15,23,42,.045); --ring:rgba(29,78,216,.40); --grid-line:rgba(71,85,105,.18);
+    --brand-soft:rgba(29,78,216,.10); --good-soft:rgba(4,120,87,.11);
+    --bad-soft:rgba(185,28,28,.10); --warn-soft:rgba(180,83,9,.12); --accent-soft:rgba(217,119,6,.14);
+    --bad-ink:#B91C1C;
+    --c1:#1D4ED8; --c2:#B45309; --c3:#047857; --c4:#64748B;
+    --c5:#3B82F6; --c6:#D97706; --c7:#10B981; --c8:#94A3B8;
+    --line-soft:rgba(148,163,184,.4); --brand-ink:#1E3A8A; --shadow-2:0 8px 24px rgba(15,23,42,.14);
+    --topbar-bg:rgba(255,255,255,.9);
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
-  body{background:var(--bg);color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-  h1,h2,h3,h4{margin:0 0 .4em;line-height:1.25;letter-spacing:-.01em}
-  h1{font-size:1.6rem} h2{font-size:1.25rem} h3{font-size:1.05rem} h4{font-size:.95rem}
+  /* the login/app swap uses the hidden attribute — author display rules must not win over it */
+  [hidden]{display:none!important}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.55;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  h1,h2,h3,h4{font-family:var(--font-head);font-weight:600;margin:0 0 .45em;line-height:1.22;letter-spacing:-.02em}
+  h1{font-size:1.5rem} h2{font-size:1.25rem} h3{font-size:1.0625rem} h4{font-size:1rem}
   p{margin:.35em 0}
-  .muted{color:var(--muted)} .faint{color:var(--faint)} .n{font-variant-numeric:tabular-nums;text-align:right}
-  .pill{display:inline-flex;align-items:center;gap:.35rem;padding:.12rem .5rem;border-radius:999px;font-size:.72rem;
-    font-weight:600;border:1px solid var(--line);white-space:nowrap}
-  .pill.demo{background:#fffbeb;color:#92400e;border-color:#fde68a}
-  .pill.ok{background:var(--good-soft);color:var(--good);border-color:#bfe6cb}
-  .pill.bad{background:var(--bad-soft);color:var(--bad);border-color:#f6c9c4}
-  .pill.warn{background:var(--warn-soft);color:var(--warn);border-color:#fbdcb0}
-  .pill.info{background:var(--brand-soft);color:var(--brand-ink);border-color:#e0e7ff}
-  .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);padding:.5rem .85rem;
-    border-radius:var(--radius-sm);font-weight:600;font-size:.86rem;cursor:pointer;box-shadow:var(--shadow-sm);transition:.15s}
-  .btn:hover{border-color:#cbd5e1;background:#f8fafc}
-  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
-  .btn.primary:hover{background:var(--brand-ink);border-color:var(--brand-ink)}
-  .btn.sm{padding:.28rem .55rem;font-size:.78rem}
-  input,select,textarea{font:inherit;color:inherit;background:#fff;border:1px solid var(--line);
-    border-radius:var(--radius-sm);padding:.5rem .6rem;width:100%}
-  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
-  label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin:0 0 .25rem}
-  .field{margin-bottom:.85rem}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
-    padding:1.05rem 1.15rem}
-  .card+.card{margin-top:1rem}
-  .card .sub{color:var(--muted);font-size:.82rem;margin:-.2rem 0 .8rem}
-  .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--radius-sm)}
-  table.tbl{width:100%;border-collapse:collapse;font-size:.83rem;min-width:660px}
-  table.tbl th{position:sticky;top:0;background:#f8fafc;color:var(--muted);font-weight:600;text-align:left;
-    padding:.55rem .6rem;border-bottom:1px solid var(--line);white-space:nowrap}
-  table.tbl th.sortable{cursor:pointer}
-  table.tbl th.sortable:hover{color:var(--ink)}
-  table.tbl td{padding:.5rem .6rem;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  a{color:var(--brand-2);text-underline-offset:3px}
+  .num,[data-pts],.rate-val{font-family:var(--font-head);font-variant-numeric:tabular-nums}
+  .muted{color:var(--ink-2)} .faint{color:var(--ink-3)}
+  .n{font-variant-numeric:tabular-nums;text-align:right}
+  /* eyebrow section label */
+  .eyebrow{font:600 12px/1 var(--font-body);letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3);
+    margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+  :focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:4px}
+  .icon-btn{display:inline-grid;place-items:center;width:36px;height:36px;padding:0;border-radius:var(--r-sm);
+    border:1px solid var(--line);background:transparent;color:var(--ink-2);cursor:pointer;
+    transition:transform 180ms ease,background 180ms ease,color 180ms ease,border-color 180ms ease}
+  .icon-btn:hover{background:var(--surface-2);color:var(--ink);transform:translateY(-2px)}
+  .icon-btn:active{transform:translateY(0)}
+  .icon-btn svg{width:18px;height:18px}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  .pill{display:inline-flex;align-items:center;gap:.35rem;padding:.14rem .5rem;border-radius:999px;
+    font-size:.75rem;font-weight:600;letter-spacing:.01em;border:1px solid var(--line);white-space:nowrap}
+  .pill.demo{background:var(--accent-soft);color:var(--accent-2);border-color:rgba(245,158,11,.35)}
+  .pill.ok{background:var(--good-soft);color:var(--ok);border-color:rgba(16,185,129,.35)}
+  .pill.bad{background:var(--bad-soft);color:var(--bad-ink);border-color:rgba(220,38,38,.4)}
+  .pill.warn{background:var(--warn-soft);color:var(--warn);border-color:rgba(245,158,11,.35)}
+  .pill.info{background:var(--brand-soft);color:var(--brand-2);border-color:rgba(59,130,246,.35)}
+  .btn{appearance:none;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);
+    padding:.5rem .85rem;border-radius:var(--r-sm);font:600 .875rem/1.2 var(--font-body);cursor:pointer;
+    box-shadow:var(--shadow-1);transition:transform 180ms ease,background 180ms ease,border-color 180ms ease,box-shadow 180ms ease}
+  .btn:hover{background:var(--surface);border-color:var(--brand-2);transform:translateY(-2px);box-shadow:var(--shadow-2)}
+  .btn:active{transform:translateY(0);box-shadow:var(--shadow-1)}
+  .btn.primary{background:var(--brand-2);border-color:var(--brand-2);color:#FFFFFF}
+  .btn.primary:hover{background:var(--brand);border-color:var(--brand)}
+  [data-theme="light"] .btn.primary{background:var(--brand-2);border-color:var(--brand-2);color:#FFFFFF}
+  .btn.sm{padding:.32rem .6rem;font-size:.8rem}
+
+  input,select,textarea{font:inherit;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);
+    border-radius:var(--r-sm);padding:.5rem .6rem;width:100%;transition:border-color 180ms ease,box-shadow 180ms ease}
+  input::placeholder{color:var(--ink-3)}
+  input:hover,select:hover,textarea:hover{border-color:var(--ink-3)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand-2);box-shadow:0 0 0 3px var(--ring)}
+  select{cursor:pointer;appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+    background-position:calc(100% - 17px) 55%,calc(100% - 12px) 55%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:2rem}
+  label,.lbl{display:block;font:600 .8125rem/1.3 var(--font-body);color:var(--ink-3);margin:0 0 6px;
+    letter-spacing:.02em;text-transform:uppercase}
+  .field{margin-bottom:14px}
+
+  /* card — the single card style used everywhere */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-1);
+    padding:20px 20px 22px}
+  .card+.card{margin-top:var(--sp-2)}
+  .card h3{margin-bottom:4px}
+  .card .sub{color:var(--ink-2);font-size:.875rem;margin:0 0 14px}
+  .card .eyebrow{margin-bottom:12px}
+
+  /* tables — sticky header, right-aligned tabular numerals, 6% row tint */
+  .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);
+    max-height:min(70vh,620px)}
+  .table-wrap::-webkit-scrollbar{height:10px;width:10px}
+  .table-wrap::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
+  table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:.875rem;min-width:660px}
+  table.tbl th{position:sticky;top:0;z-index:2;background:var(--surface-2);color:var(--ink-3);font-weight:600;
+    text-align:left;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;padding:10px 12px;
+    border-bottom:1px solid var(--line);white-space:nowrap}
+  table.tbl th.sortable{cursor:pointer;user-select:none;transition:color 160ms ease,background 160ms ease}
+  table.tbl th.sortable:hover{color:var(--ink);background:var(--brand-soft)}
+  table.tbl th .sortmark{display:inline-flex;vertical-align:-2px;margin-left:5px;color:var(--brand-2)}
+  table.tbl th .sortmark svg{width:10px;height:10px}
+  table.tbl td{padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
   table.tbl tr:last-child td{border-bottom:none}
+  table.tbl tbody tr{transition:background 160ms ease}
   table.tbl tbody tr.click{cursor:pointer}
-  table.tbl tbody tr.click:hover{background:#f8fafc}
+  table.tbl tbody tr.click:hover{background:var(--hover)}
+  table.tbl tbody tr.click:hover td:first-child{box-shadow:inset 3px 0 0 var(--brand-2)}
   table.tbl th.n,table.tbl td.n{text-align:right;font-variant-numeric:tabular-nums}
-  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;background:#f1f5f9;
-    border:1px solid var(--line);border-radius:6px;padding:.05rem .35rem}
-  .bar{height:7px;border-radius:999px;background:#e9eef5;overflow:hidden;min-width:70px}
-  .bar>i{display:block;height:100%;border-radius:999px;background:var(--brand)}
-  .bar.good>i{background:var(--good)} .bar.bad>i{background:var(--bad)}
+  .kbd{font-family:var(--font-head);font-size:.78rem;background:var(--surface-2);
+    border:1px solid var(--line);border-radius:6px;padding:.1rem .4rem;color:var(--ink-2)}
+  .bar{height:6px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line-soft);
+    overflow:hidden;min-width:70px}
+  .bar>i{display:block;height:100%;border-radius:999px;background:var(--brand-2)}
+  .bar.good>i{background:var(--ok)} .bar.bad>i{background:var(--bad)}
+  .chip-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .sw{width:10px;height:10px;border-radius:3px;display:inline-block;vertical-align:-1px;margin-right:7px;flex:none}
+  .mini{font:600 11px/1 var(--font-body);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+  .filter-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) auto;
+    gap:var(--sp-2);align-items:end}
+  @media(max-width:900px){ .filter-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} }
+  @media(max-width:520px){ .filter-grid{grid-template-columns:1fr} }
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;background:var(--surface-2)}
+  .seg-b{appearance:none;border:none;background:transparent;color:var(--ink-2);font:600 .8125rem/1 var(--font-body);
+    padding:11px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+    transition:background 170ms ease,color 170ms ease}
+  .seg-b+.seg-b{border-left:1px solid var(--line)}
+  .seg-b:hover{background:var(--hover);color:var(--ink)}
+  .seg-b[aria-pressed="true"]{background:var(--brand-soft);color:var(--ink);box-shadow:inset 0 -2px 0 var(--brand-2)}
+  .seg-b svg{width:15px;height:15px}
+  .empty{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:var(--sp-4) var(--sp-2);
+    color:var(--ink-2);border:1px dashed var(--line);border-radius:var(--r-sm)}
+  .empty svg{width:30px;height:30px;color:var(--ink-3)}
 
-  .login-wrap{min-height:100vh;display:grid;place-items:center;padding:1.5rem;
-    background:radial-gradient(1200px 600px at 15% -10%,#e0e7ff 0%,rgba(224,231,255,0) 55%),
-               radial-gradient(900px 500px at 120% 10%,#cffafe 0%,rgba(207,250,254,0) 50%),var(--bg)}
-  .login-card{width:min(940px,100%);display:grid;grid-template-columns:1.1fr 1fr;overflow:hidden;background:#fff;
-    border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow)}
-  .login-hero{padding:2rem;background:linear-gradient(160deg,#4f46e5 0%,#4338ca 55%,#312e81 100%);color:#eef2ff}
-  .login-hero .brand{display:flex;align-items:center;gap:.6rem;font-weight:800;letter-spacing:-.02em;font-size:1.15rem}
-  .login-hero h1{color:#fff;margin-top:1.3rem}
-  .login-hero p{color:#dbe3ff;font-size:.92rem;max-width:40ch}
-  .login-hero ul{margin:1.1rem 0 0;padding-left:1.1rem;color:#e0e7ff;font-size:.88rem;line-height:1.7}
-  .login-form{padding:2rem;display:flex;flex-direction:column;justify-content:center}
-  .demo-note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:var(--radius-sm);
-    padding:.7rem .8rem;font-size:.82rem;margin-top:.9rem}
-  .err{color:var(--bad);font-size:.82rem;margin-top:.4rem;min-height:1.1em}
-  .logo{width:34px;height:34px;border-radius:9px;background:#fff;color:var(--brand);display:grid;place-items:center;
-    font-weight:900;box-shadow:var(--shadow-sm)}
+  /* ============================== login screen ============================== */
+  .login-wrap{min-height:100vh;display:grid;place-items:center;padding:var(--sp-3)}
+  .login-wrap::before{content:"";position:fixed;inset:0;z-index:-1;
+    background:radial-gradient(900px 520px at 12% -8%,rgba(59,130,246,.20) 0%,rgba(59,130,246,0) 60%),
+               radial-gradient(760px 460px at 105% 8%,rgba(217,119,6,.14) 0%,rgba(217,119,6,0) 55%),var(--bg)}
+  [data-theme="light"] .login-wrap::before{
+    background:radial-gradient(900px 520px at 12% -8%,rgba(29,78,216,.14) 0%,rgba(29,78,216,0) 60%),
+               radial-gradient(760px 460px at 105% 8%,rgba(217,119,6,.12) 0%,rgba(217,119,6,0) 55%),var(--bg)}
+  .login-card{width:min(460px,100%);background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r-lg);box-shadow:var(--shadow-2);padding:28px 28px 24px;position:relative;overflow:hidden}
+  .login-card::before{content:"";position:absolute;inset:0 0 auto;height:3px;
+    background:linear-gradient(90deg,var(--brand-2),var(--accent))}
+  .login-card h1{font-size:1.375rem;margin:0 0 6px}
+  .login-lede{color:var(--ink-2);font-size:.9375rem;margin:0 0 20px}
+  .login-actions{display:grid;gap:8px;margin-top:18px}
+  .login-actions .btn{width:100%;padding:.7rem}
+  .brandline{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  .brandline .bname{font-family:var(--font-head);font-weight:700;letter-spacing:-.02em}
+  .brandline .bsub{font-size:.75rem;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
+  .mark{width:34px;height:34px;flex:none;border-radius:10px;display:grid;place-items:center;color:#FFFFFF;
+    background:linear-gradient(150deg,var(--brand-2),var(--brand));box-shadow:var(--shadow-1)}
+  .mark svg{width:19px;height:19px}
+  .mark.sm{width:28px;height:28px;border-radius:8px}
+  .mark.sm svg{width:16px;height:16px}
+  .demo-note{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);border-radius:var(--r-sm);
+    padding:10px 12px;font-size:.8125rem;margin-top:16px;line-height:1.5}
+  .demo-note b{color:var(--ink)}
+  .err{color:var(--bad-ink);font-size:.8125rem;margin-top:8px;min-height:1.1em;font-weight:600}
+  .login-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px;
+    padding-top:14px;border-top:1px solid var(--line-soft);font-size:.75rem;color:var(--ink-3)}
+  .theme-absolute{position:absolute;top:18px;right:18px}
 
-  .ribbon{background:#fef3c7;color:#7c2d12;border-bottom:1px solid #fde68a;font-size:.78rem;font-weight:600;
-    padding:.35rem 1rem;display:flex;gap:.5rem;align-items:center;justify-content:center;text-align:center}
-  .topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.88);backdrop-filter:saturate(140%) blur(6px);
-    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:1rem;padding:.65rem 1.1rem}
-  .topbar .brand{display:flex;align-items:center;gap:.6rem;font-weight:800;letter-spacing:-.02em}
+  /* ============================ app shell ============================ */
+  .topbar{position:sticky;top:0;z-index:30;min-height:var(--tb-h);display:flex;align-items:center;gap:14px;
+    padding:10px var(--sp-3);background:var(--topbar-bg);
+    background:color-mix(in srgb,var(--surface) 90%,transparent);
+    -webkit-backdrop-filter:saturate(140%) blur(8px);backdrop-filter:saturate(140%) blur(8px);
+    border-bottom:1px solid var(--line)}
+  .topbar .tb-text{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+  .topbar .tb-text b{font-family:var(--font-head);font-size:1rem;letter-spacing:-.02em}
+  .topbar .tb-text span{font-size:.75rem;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .topbar .spacer{flex:1}
-  .who{display:flex;align-items:center;gap:.6rem}
-  .who .meta{font-size:.78rem;color:var(--muted);line-height:1.25;text-align:right}
-  .who .meta b{color:var(--ink);font-size:.86rem}
-  .avatar{width:34px;height:34px;border-radius:10px;background:var(--brand-soft);color:var(--brand-ink);
-    display:grid;place-items:center;font-weight:800;border:1px solid #e0e7ff}
-  .shell{display:grid;grid-template-columns:232px 1fr;gap:0;align-items:start}
-  .sidenav{position:sticky;top:56px;padding:1rem .7rem;display:flex;flex-direction:column;gap:.25rem}
-  .sidenav .grp{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);
-    padding:.6rem .6rem .2rem;font-weight:700}
-  .navbtn{display:flex;align-items:center;gap:.6rem;width:100%;text-align:left;background:transparent;border:none;
-    padding:.55rem .6rem;border-radius:var(--radius-sm);cursor:pointer;color:var(--muted);font-weight:600;font-size:.9rem}
-  .navbtn:hover{background:#f1f5f9;color:var(--ink)}
-  .navbtn.active{background:var(--brand-soft);color:var(--brand-ink)}
-  .navbtn .ic{width:18px;text-align:center}
-  .content{padding:1.3rem;min-height:calc(100vh - 48px)}
-  .view{display:none;animation:fade .18s ease}
+  .who{display:flex;align-items:center;gap:10px}
+  .who .meta{font-size:.75rem;color:var(--ink-3);line-height:1.3;text-align:right}
+  .who .meta b{color:var(--ink);font-size:.875rem;font-family:var(--font-head)}
+  .avatar{width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand-2);
+    display:grid;place-items:center;font-family:var(--font-head);font-weight:700;border:1px solid var(--line)}
+  .shell{display:grid;grid-template-columns:248px minmax(0,1fr);gap:0;align-items:start;
+    max-width:1680px;margin:0 auto;width:100%}
+  .sidenav{position:sticky;top:var(--tb-h);padding:var(--sp-2) 12px;display:flex;flex-direction:column;gap:2px;
+    background:var(--surface);border-right:1px solid var(--line);min-height:calc(100vh - var(--tb-h))}
+  .sidenav .grp{font:600 11px/1 var(--font-body);text-transform:uppercase;letter-spacing:.14em;color:var(--ink-3);
+    padding:14px 10px 8px}
+  .sidenav .grp:first-child{padding-top:2px}
+  .navbtn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:none;
+    padding:10px 10px;border-radius:var(--r-sm);cursor:pointer;color:var(--ink-2);font:600 .9375rem/1.2 var(--font-body);
+    transition:background 170ms ease,color 170ms ease,transform 170ms ease}
+  .navbtn:hover{background:var(--hover);color:var(--ink);transform:translateX(2px)}
+  .navbtn.active{background:var(--brand-soft);color:var(--ink);box-shadow:inset 3px 0 0 var(--accent)}
+  .navbtn .ic{width:18px;height:18px;flex:none;display:inline-grid;place-items:center;color:var(--ink-3)}
+  .navbtn.active .ic{color:var(--brand-2)}
+  .navbtn .ic svg{width:18px;height:18px}
+  .navbtn.danger{color:var(--bad-ink)}
+  .content{padding:var(--sp-3);min-height:calc(100vh - var(--tb-h));min-width:0}
+  .view{display:none}
   .view.active{display:block}
-  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-  .view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
-  .view-head p{margin:0}
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:.85rem}
-  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:.95rem 1rem;box-shadow:var(--shadow-sm)}
-  .kpi .lbl{font-size:.74rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-  .kpi .val{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin-top:.2rem}
-  .kpi .foot{font-size:.76rem;color:var(--faint);margin-top:.25rem}
-  .kpi.accent .val{color:var(--brand-ink)} .kpi.bad .val{color:var(--bad)} .kpi.good .val{color:var(--good)}
+  .view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--sp-2);flex-wrap:wrap;
+    margin-bottom:var(--sp-2);padding-bottom:14px;border-bottom:1px solid var(--line-soft)}
+  .view-head p{margin:0;color:var(--ink-2);font-size:.9375rem}
+  .view-head h1{margin-bottom:4px}
+
+  /* KPI card */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:var(--sp-2);margin-bottom:var(--sp-2)}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px;
+    box-shadow:var(--shadow-1);transition:transform 200ms ease,box-shadow 200ms ease,border-color 200ms ease}
+  .kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);border-color:var(--brand-2)}
+  .kpi .lbl{font:600 13px/1.3 var(--font-body);color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase}
+  .kpi .val{font-family:var(--font-head);font-variant-numeric:tabular-nums;font-size:30px;font-weight:600;
+    letter-spacing:-.03em;margin-top:6px;line-height:1.1}
+  .kpi .foot{font-size:.8125rem;color:var(--ink-3);margin-top:6px}
+  .kpi.accent .val{color:var(--brand-2)} .kpi.bad .val{color:var(--bad-ink)} .kpi.good .val{color:var(--ok)}
   .kpi.warn .val{color:var(--warn)}
-  .cols{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-  .split{display:grid;grid-template-columns:1.45fr 1fr;gap:1rem;align-items:start}
-  .row-inline{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
-  .chart-box{position:relative;height:300px}
-  .flash{border-radius:var(--radius-sm);padding:.7rem .9rem;font-size:.86rem;margin-bottom:.9rem;border:1px solid}
-  .flash.ok{background:var(--good-soft);border-color:#bfe6cb;color:#0b5a26}
-  .flash.info{background:var(--brand-soft);border-color:#e0e7ff;color:#3730a3}
-  .defbox{background:var(--brand-soft);border:1px solid #e0e7ff;color:#3730a3;border-radius:var(--radius-sm);
-    padding:.7rem .9rem;font-size:.84rem;margin-bottom:1rem}
-  .defbox b{color:#312e81}
-  .formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8rem;background:#f8fafc;
-    border:1px dashed var(--line);border-radius:8px;padding:.6rem .7rem;color:#334155;line-height:1.9}
-  .prof{display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
-  .prof .av{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;font-weight:900;font-size:1.3rem;
-    color:#fff;background:linear-gradient(150deg,var(--brand),#312e81)}
-  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.5rem .9rem;margin-top:.9rem;
-    border-top:1px solid var(--line-soft);padding-top:.8rem;font-size:.84rem}
-  .facts .k{color:var(--faint);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
-  .gauge{display:flex;align-items:center;gap:1rem}
-  .gauge .num{font-size:2.4rem;font-weight:900;letter-spacing:-.03em;line-height:1}
-  input[type=range]{width:100%;padding:0;height:26px;accent-color:var(--brand);border:none;background:transparent}
-  input[type=range]:focus{box-shadow:none}
-  .rate-val{font-weight:800;font-variant-numeric:tabular-nums}
-  .link-chip{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;background:#f1f5f9;
-    border:1px solid var(--line);border-radius:8px;padding:.2rem .45rem;color:#334155}
-  .legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-top:.6rem}
-  .legend .dot{width:12px;height:12px;border-radius:3px;display:inline-block;vertical-align:-1px;margin-right:.35rem}
-  footer{padding:1.2rem 1.3rem;color:var(--faint);font-size:.78rem;border-top:1px solid var(--line);text-align:center}
-  footer b{color:var(--muted)}
-  @media(max-width:900px){
-    .login-card{grid-template-columns:1fr} .login-hero{display:none}
+  [data-theme="light"] .kpi.accent .val{color:var(--brand)}
+
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:var(--sp-2)}
+  .split{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:var(--sp-2);align-items:start}
+  .row-inline{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .chart-box{position:relative;height:320px;min-width:0}
+  .chart-box.no-chart::after{content:"Charts need the CDN — the same figures are in the tables below.";
+    position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:0 var(--sp-3);
+    font-size:.8125rem;color:var(--ink-3);border:1px dashed var(--line);border-radius:var(--r-sm)}
+
+  .flash{border-radius:var(--r-sm);padding:12px 14px;font-size:.875rem;margin-bottom:var(--sp-2);
+    border:1px solid;box-shadow:var(--shadow-1)}
+  .flash.ok{background:var(--good-soft);border-color:rgba(16,185,129,.4);color:var(--ink)}
+  .flash.info{background:var(--brand-soft);border-color:rgba(59,130,246,.4);color:var(--ink)}
+  .defbox{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--brand-2);
+    color:var(--ink-2);border-radius:var(--r-sm);padding:12px 14px;font-size:.875rem;margin-bottom:var(--sp-2)}
+  .defbox b{color:var(--ink)}
+  .formula{font-family:var(--font-head);font-size:.8125rem;background:var(--surface-2);
+    border:1px dashed var(--line);border-radius:var(--r-sm);padding:12px 14px;color:var(--ink-2);line-height:2}
+
+  /* profile header + officer cards */
+  .prof{display:flex;gap:var(--sp-2);align-items:center;flex-wrap:wrap}
+  .prof .av{width:60px;height:60px;border-radius:var(--r-md);display:grid;place-items:center;flex:none;
+    font-family:var(--font-head);font-weight:700;font-size:1.25rem;color:#FFFFFF;letter-spacing:-.02em;
+    background:linear-gradient(150deg,var(--brand-2),var(--brand))}
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 16px;margin-top:var(--sp-2);
+    border-top:1px solid var(--line-soft);padding-top:14px;font-size:.875rem}
+  .facts .k{color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:600;margin-bottom:3px}
+  .facts b{font-family:var(--font-head);font-weight:500}
+  .oc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:var(--sp-2)}
+  .oc{position:relative;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r-md);box-shadow:var(--shadow-1);padding:16px 16px 14px 19px;cursor:pointer;overflow:hidden;
+    transition:transform 200ms ease,box-shadow 200ms ease,border-color 200ms ease}
+  .oc:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);border-color:var(--brand-2)}
+  .oc:active{transform:translateY(0)}
+  .oc .bandbar{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brand-2)}
+  .oc.b-ok .bandbar{background:var(--ok)} .oc.b-info .bandbar{background:var(--brand-2)}
+  .oc.b-warn .bandbar{background:var(--warn)} .oc.b-bad .bandbar{background:var(--bad)}
+  .oc-top{display:flex;align-items:center;gap:10px}
+  .oc-av{width:38px;height:38px;border-radius:var(--r-sm);flex:none;display:grid;place-items:center;
+    font-family:var(--font-head);font-weight:600;font-size:.8125rem;color:var(--ink);background:var(--surface-2);
+    border:1px solid var(--line)}
+  .oc-name{font-family:var(--font-head);font-weight:600;font-size:1rem;letter-spacing:-.02em;line-height:1.25}
+  .oc-code{font-size:.75rem;color:var(--ink-3)}
+  .oc-stats{display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line-soft);padding-top:10px}
+  .oc-stats div{min-width:64px}
+  .oc-stats .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+  .oc-stats .v{font-family:var(--font-head);font-variant-numeric:tabular-nums;font-size:1.0625rem;margin-top:2px}
+  .oc-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+  /* scorecard */
+  .gauge{display:flex;align-items:center;gap:var(--sp-2)}
+  .gauge .num{font-family:var(--font-head);font-variant-numeric:tabular-nums;font-size:2.25rem;font-weight:700;
+    letter-spacing:-.03em;line-height:1}
+  .rate-val{display:inline-block;min-width:24px;font-family:var(--font-head);font-variant-numeric:tabular-nums;
+    font-weight:600;font-size:1rem;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;
+    padding:1px 7px;color:var(--ink)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px;padding:0;border:none;
+    background:transparent;cursor:pointer;accent-color:var(--brand-2)}
+  input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--surface-2);
+    border:1px solid var(--line)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;margin-top:-6px;
+    border-radius:50%;background:var(--brand-2);border:2px solid var(--surface);box-shadow:var(--shadow-1);
+    transition:box-shadow 180ms ease,transform 180ms ease}
+  input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.12)}
+  input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line)}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--brand-2);
+    border:2px solid var(--surface);box-shadow:var(--shadow-1)}
+  input[type=range]:focus{outline:none;border:none;box-shadow:none;background:transparent}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--ring)}
+  input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px var(--ring)}
+  .slider-cell{display:flex;align-items:center;gap:10px}
+  .slider-cell .ticks{font-family:var(--font-head);font-size:.6875rem;color:var(--ink-3);letter-spacing:.02em}
+  .link-chip{font-family:var(--font-head);font-size:.75rem;background:var(--surface-2);
+    border:1px solid var(--line);border-radius:6px;padding:.2rem .45rem;color:var(--ink-2)}
+  .legend{display:flex;gap:var(--sp-2);flex-wrap:wrap;font-size:.8125rem;color:var(--ink-2);margin-top:12px}
+  .legend .dot{width:11px;height:11px;border-radius:3px;display:inline-block;vertical-align:-1px;margin-right:7px}
+  footer{padding:var(--sp-3);color:var(--ink-3);font-size:.8125rem;border-top:1px solid var(--line);text-align:center;
+    background:var(--surface);max-width:1680px;margin:0 auto;width:100%}
+  footer b{color:var(--ink-2)}
+  footer .fmeta{display:flex;gap:var(--sp-2);justify-content:center;flex-wrap:wrap;margin-top:8px}
+
+  /* first-paint stagger (<=450ms total), only when a tab is entered */
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:no-preference){
+    .anim-in .kpi,.anim-in .card,.anim-in .oc{animation:fade 240ms cubic-bezier(.2,.7,.3,1) both}
+    .anim-in .kpi:nth-child(2),.anim-in .card:nth-child(2),.anim-in .oc:nth-child(2){animation-delay:35ms}
+    .anim-in .kpi:nth-child(3),.anim-in .card:nth-child(3),.anim-in .oc:nth-child(3){animation-delay:70ms}
+    .anim-in .kpi:nth-child(4),.anim-in .card:nth-child(4),.anim-in .oc:nth-child(4){animation-delay:105ms}
+    .anim-in .kpi:nth-child(n+5),.anim-in .card:nth-child(n+5),.anim-in .oc:nth-child(n+5){animation-delay:140ms}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
+      transition-duration:.001ms!important;scroll-behavior:auto!important}
+  }
+
+  /* ============================ responsive ============================ */
+  @media(max-width:1180px){ .split{grid-template-columns:minmax(0,1fr)} }
+  @media(max-width:768px){
     .shell{grid-template-columns:1fr}
-    .sidenav{position:static;flex-direction:row;overflow:auto;padding:.6rem;border-bottom:1px solid var(--line)}
-    .sidenav .grp{display:none} .navbtn{white-space:nowrap;width:auto}
-    .cols,.split{grid-template-columns:1fr}
+    .sidenav{position:sticky;top:var(--tb-h);z-index:20;flex-direction:row;overflow-x:auto;min-height:0;
+      padding:8px;gap:4px;border-right:none;border-bottom:1px solid var(--line)}
+    .sidenav .grp{display:none}
+    .navbtn{white-space:nowrap;width:auto;padding:9px 12px}
+    .navbtn:hover{transform:none}
+    .navbtn.active{box-shadow:inset 0 -3px 0 var(--accent)}
+    .content{padding:var(--sp-2)}
+    .topbar{padding:8px var(--sp-2);gap:10px}
+    .topbar .tb-text span{display:none}
+    .who .meta{display:none}
+    .chart-box{height:260px}
+    .kpi .val{font-size:26px}
+  }
+  @media(max-width:520px){
+    :root{--tb-h:58px}
+    body{font-size:15.5px}
+    .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+    .cols{grid-template-columns:1fr}
+    .login-card{padding:22px 18px 18px;border-radius:var(--r-md)}
+    .card{padding:16px 14px 18px}
+    .gauge{flex-wrap:wrap}
+    .oc-grid{grid-template-columns:1fr}
+    .facts{grid-template-columns:1fr 1fr}
   }
 </style>
 </head>
@@ -159,63 +379,76 @@
   <!-- ============================= LOGIN ============================= -->
   <div id="login" class="login-wrap">
     <div class="login-card">
-      <div class="login-hero">
-        <div class="brand"><span class="logo">N</span> NexaField</div>
-        <h1>Field Officer Performance Portal</h1>
-        <p>One place to see every field officer's assignment, KPI trend and review score across the NexaGroup business units.</p>
-        <ul>
-          <li>Officer directory with search, filters and territory assignments</li>
-          <li>KPI trends — visits, plan attainment and field investment return</li>
-          <li>Weighted review rubric that recomputes live as ratings change</li>
-          <li>Group overview dashboard plus survey and link workflows</li>
-        </ul>
-        <p style="margin-top:1.3rem;font-size:.8rem;color:#c7d2fe">Open demo build of an internal portal. Every name, code and figure is fictional.</p>
+      <button class="icon-btn js-theme theme-absolute" type="button" aria-label="Switch between dark and light theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 10 4a7 7 0 0 0 10 10.5z"/></svg>
+      </button>
+      <div class="brandline">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V5l14 14V5"/></svg>
+        </span>
+        <span>
+          <span class="bname">NexaField</span><br />
+          <span class="bsub">Field Officer Performance Portal</span>
+        </span>
       </div>
-      <form class="login-form" id="loginForm" autocomplete="off">
-        <h2 style="margin-bottom:.2rem">Sign in</h2>
-        <p class="muted" style="font-size:.88rem;margin-bottom:1.1rem">Simulated sign-in — there is no server and no account check.</p>
+      <h1>Sign in to the demo</h1>
+      <p class="login-lede">One screen for every synthetic officer&rsquo;s territory assignment, KPI trend and weighted
+        review score across four business units.</p>
+      <form id="loginForm" autocomplete="off">
         <div class="field">
-          <label for="user">Username</label>
-          <input id="user" name="user" placeholder="officer.demo" />
+          <label for="user">Portal ID</label>
+          <input id="user" name="user" placeholder="Reviewer ID" />
         </div>
         <div class="field">
           <label for="pass">Password</label>
-          <input id="pass" name="pass" type="password" placeholder="(anything)" />
+          <input id="pass" name="pass" type="password" placeholder="Not verified in this demo" />
         </div>
-        <button class="btn primary" type="submit" style="width:100%;padding:.65rem">Enter the demo</button>
-        <button class="btn" type="button" id="fillDemo" style="width:100%;margin-top:.5rem;padding:.6rem">Use demo credentials</button>
-        <div class="err" id="loginErr"></div>
-        <div class="demo-note">
-          <b>UI-only demo.</b> Any username and password are accepted. Nothing is transmitted or verified against real
-          records — signing in only reveals the demo screens.
+        <div class="login-actions">
+          <button class="btn primary" type="submit">Enter the demo</button>
+          <button class="btn" type="button" id="fillDemo">Use demo credentials</button>
         </div>
+        <div class="err" id="loginErr" role="status" aria-live="polite"></div>
       </form>
+      <div class="demo-note">
+        <b>UI-only demo.</b> Any portal ID and password are accepted. Nothing is transmitted or checked against real
+        records &mdash; signing in only reveals the demo screens, and the roster, KPI series and scores are generated in
+        this browser.
+      </div>
+      <div class="login-meta">
+        <span class="pill demo">Synthetic data</span>
+        <span>No server &middot; no accounts &middot; nothing leaves the tab</span>
+      </div>
     </div>
   </div>
 
   <!-- ============================== APP ============================== -->
   <div id="app" hidden>
-    <div class="ribbon">DEMO build · synthetic data only · simulated login · no backend, no live integrations</div>
     <header class="topbar">
-      <div class="brand"><span class="logo" style="background:var(--brand);color:#fff">N</span> NexaField
-        <span class="pill demo">DEMO</span></div>
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V5l14 14V5"/></svg>
+      </span>
+      <div class="tb-text"><b>NexaField</b><span>Field officer assignments, KPI trends and review scoring</span></div>
+      <span class="pill demo">Synthetic data · demo build</span>
       <div class="spacer"></div>
+      <button class="icon-btn js-theme" type="button" aria-label="Switch between dark and light theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 10 4a7 7 0 0 0 10 10.5z"/></svg>
+      </button>
       <div class="who">
         <div class="meta"><b id="whoName">—</b><br><span id="whoSub">—</span></div>
-        <div class="avatar" id="whoAvatar">D</div>
+        <div class="avatar" id="whoAvatar" aria-hidden="true">D</div>
         <button class="btn sm" id="signout">Sign out</button>
       </div>
     </header>
 
     <div class="shell">
-      <nav class="sidenav">
+      <nav class="sidenav" aria-label="Portal sections">
         <div class="grp">Portal</div>
-        <button class="navbtn active" data-tab="dashboard"><span class="ic">▦</span> Overview</button>
-        <button class="navbtn" data-tab="officers"><span class="ic">◪</span> Officers</button>
-        <button class="navbtn" data-tab="surveys"><span class="ic">◈</span> Surveys &amp; Links</button>
-        <button class="navbtn" data-tab="rubric"><span class="ic">◎</span> Review Rubric</button>
+        <button class="navbtn active" data-tab="dashboard"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span> Overview</button>
+        <button class="navbtn" data-tab="officers"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.4 20c.5-3.3 2.8-5 5.6-5s5.1 1.7 5.6 5"/><path d="M16.2 5.6a3 3 0 0 1 0 4.9"/><path d="M18 19.6c-.2-2-.9-3.4-2.1-4.2"/></svg></span> Officers</button>
+        <button class="navbtn" data-tab="surveys"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3h7l4.5 4.5V21h-11.5z"/><path d="M13.5 3v4.5H18"/><path d="M9 13.5l2 2 4-4"/></svg></span> Surveys &amp; Links</button>
+        <button class="navbtn" data-tab="rubric"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="3.6"/></svg></span> Review Rubric</button>
         <div class="grp">Demo</div>
-        <button class="navbtn" id="resetDemo" style="color:var(--bad)"><span class="ic">↺</span> Reset saved state</button>
+        <button class="navbtn danger" id="resetDemo"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 10.5a7.5 7.5 0 1 1 2.2 6.4"/><path d="M4 5v5.5h5.5"/></svg></span> Reset saved state</button>
       </nav>
       <main class="content">
         <section id="view-dashboard" class="view active"></section>
@@ -229,7 +462,10 @@
     <footer>
       NexaField · Field Officer Performance Portal — single-file, client-side demo. NexaGroup, its business units, every
       officer name, employee code, territory and figure is fictional and generated in the browser.
-      <br /><b>Built by Abir</b>
+      <div class="fmeta">
+        <a href="#methodology" data-goto="rubric">Methodology &amp; formulas</a>
+        <span>Built by Abir</span>
+      </div>
     </footer>
   </div>
 
@@ -256,13 +492,24 @@
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
     return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
   var $ = function(sel,root){ return (root||document).querySelector(sel); };
+  function all(sel,root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
+
+  /* -------- presentation helpers (style layer only, no data logic) -------- */
+  function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  /* spec chart palette, read live so the theme toggle recolours every chart */
+  function PAL(){ return ["--c1","--c2","--c3","--c4","--c5","--c6","--c7","--c8"].map(cssVar); }
+  function eb(t){ return '<div class="eyebrow">'+esc(t)+'</div>'; }
+  function inits(name){ return String(name).split(" ").map(function(w){ return w.slice(0,1); }).join("").slice(0,2).toUpperCase(); }
+  function pillCls(b){ return b.cls==="info" ? "ok" : b.cls; }
+  function caretSvg(down){ return '<span class="sortmark" aria-hidden="true"><svg viewBox="0 0 12 12" fill="currentColor">'+
+    '<path d="'+(down?"M6 8.6 2.2 4.2h7.6z":"M6 3.4l3.8 4.4H2.2z")+'"/></svg></span>'; }
 
   /* =========================== reference data =========================== */
   var SBUS = [
-    { id:"NC", name:"Nexa Cement",    color:"#4f46e5", margin:0.13, head:"Cement SBU Lead (demo)" },
-    { id:"AG", name:"Nexa AgroFeeds", color:"#0ea5e9", margin:0.19, head:"AgroFeeds SBU Lead (demo)" },
-    { id:"ST", name:"Nexa Steel",     color:"#f59e0b", margin:0.09, head:"Steel SBU Lead (demo)" },
-    { id:"PW", name:"Nexa Power",     color:"#10b981", margin:0.24, head:"Power SBU Lead (demo)" }
+    { id:"NC", name:"Nexa Cement",    color:"#3B82F6", margin:0.13, head:"Cement SBU Lead (demo)" },
+    { id:"AG", name:"Nexa AgroFeeds", color:"#D97706", margin:0.19, head:"AgroFeeds SBU Lead (demo)" },
+    { id:"ST", name:"Nexa Steel",     color:"#10B981", margin:0.09, head:"Steel SBU Lead (demo)" },
+    { id:"PW", name:"Nexa Power",     color:"#60A5FA", margin:0.24, head:"Power SBU Lead (demo)" }
   ];
   var SBU_BY = {}; SBUS.forEach(function(s){ SBU_BY[s.id]=s; });
 
@@ -417,8 +664,11 @@
 
   /* ================================ state ================================ */
   var LS_KEY = "nexafield.portal.v2";
+  var LS_THEME = "nexafield.theme.v1";
   var state = { logged:false, user:"", tab:"dashboard", selected:OFFICERS[0].code,
-                q:"", sbu:"all", band:"all", sort:"score", dir:-1, overrides:{}, surveyExtra:{}, flash:null };
+                q:"", sbu:"all", band:"all", sort:"score", dir:-1, overrides:{}, surveyExtra:{}, flash:null,
+                /* view preferences — presentation only, never feeds a calculation */
+                roster:"cards", stagger:true };
   var charts = {};
   function persist(){ try{ localStorage.setItem(LS_KEY, JSON.stringify({overrides:state.overrides, surveyExtra:state.surveyExtra})); }catch(e){} }
   function restore(){ var s=null; try{ s=JSON.parse(localStorage.getItem(LS_KEY)||"null"); }catch(e){ s=null; }
@@ -433,18 +683,49 @@
     var el = document.getElementById(id); if(!el) return;
     try{ charts[id] = new Chart(el.getContext("2d"), cfg); }catch(e){}
   }
-  function baseOpts(extra){
-    var o = { responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ boxWidth:12, font:{ size:11 } } } },
-      scales:{ x:{ grid:{ display:false }, ticks:{ font:{ size:10 }, maxRotation:0, autoSkip:true } },
-               y:{ grid:{ color:"#eef2f7" }, ticks:{ font:{ size:10 } } } } };
-    if(extra){ Object.keys(extra).forEach(function(k){ o[k]=extra[k]; }); }
+  /* nested merge so every chart keeps its tooltip styling when a call overrides one branch */
+  function deepMerge(a,b){
+    var o={}; Object.keys(a).forEach(function(k){ o[k]=a[k]; });
+    Object.keys(b).forEach(function(k){
+      var v=b[k];
+      o[k] = (v && typeof v==="object" && !Array.isArray(v) && o[k] && typeof o[k]==="object" && !Array.isArray(o[k]))
+             ? deepMerge(o[k],v) : v;
+    });
     return o;
   }
+  function fontSpec(size){ return { size:size, family:cssVar("--font-body") }; }
+  function baseOpts(extra){
+    var o = { responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:"index", intersect:false },
+      plugins:{
+        legend:{ labels:{ boxWidth:11, boxHeight:11, usePointStyle:true, pointStyle:"rectRounded",
+                          color:cssVar("--ink-2"), font:fontSpec(12), padding:14 } },
+        tooltip:{ backgroundColor:cssVar("--surface-2"), borderColor:cssVar("--line"), borderWidth:1,
+                  titleColor:cssVar("--ink"), bodyColor:cssVar("--ink-2"), cornerRadius:8, padding:10,
+                  titleFont:fontSpec(12), bodyFont:fontSpec(12), boxPadding:4, usePointStyle:true }
+      },
+      scales:{ x:{ grid:{ display:false }, border:{ color:cssVar("--line") },
+                   ticks:{ color:cssVar("--ink-3"), font:fontSpec(11), maxRotation:0, autoSkip:true } },
+               y:{ grid:{ color:cssVar("--grid-line") }, border:{ display:false },
+                   ticks:{ color:cssVar("--ink-3"), font:fontSpec(11) } } } };
+    if(extra){ o = deepMerge(o,extra); }
+    return o;
+  }
+  function applyChartDefaults(){ if(window.Chart){ Chart.defaults.font.family = cssVar("--font-body");
+    Chart.defaults.color = cssVar("--ink-3"); } }
 
   /* ================================ login ================================ */
+  function applyTheme(t){
+    document.documentElement.setAttribute("data-theme", t);
+    try{ localStorage.setItem(LS_THEME, t); }catch(e){}
+    applyChartDefaults();
+    if(state.logged) render();
+  }
+  function toggleTheme(){
+    applyTheme(document.documentElement.getAttribute("data-theme")==="light" ? "dark" : "light");
+  }
   function doLogin(u){
-    state.logged=true; state.user=u;
+    state.logged=true; state.user=u; state.stagger=true;
     $("#login").hidden=true; $("#app").hidden=false;
     $("#whoName").textContent = u;
     $("#whoSub").textContent = "Regional reviewer (demo) · NexaGroup";
@@ -460,11 +741,14 @@
   /* ============================== rendering ============================== */
   function render(){
     destroyCharts();
+    var animate = state.stagger; state.stagger = false;
     Array.prototype.forEach.call(document.querySelectorAll(".navbtn[data-tab]"), function(b){
       b.classList.toggle("active", b.getAttribute("data-tab")===state.tab);
     });
     ["dashboard","officers","officer","surveys","rubric"].forEach(function(v){
-      var el=$("#view-"+v); if(el) el.classList.toggle("active", v===state.tab);
+      var el=$("#view-"+v); if(!el) return;
+      el.classList.toggle("active", v===state.tab);
+      el.classList.toggle("anim-in", animate && v===state.tab);
     });
     if(state.tab==="dashboard") $("#view-dashboard").innerHTML = viewDashboard();
     else if(state.tab==="officers") $("#view-officers").innerHTML = viewOfficers();
@@ -474,7 +758,7 @@
     drawCharts();
     state.flash = null;
   }
-  function setTab(t){ state.tab=t; render(); }
+  function setTab(t){ state.tab=t; state.stagger=true; render(); }
   function openOfficer(code){ state.selected=code; setTab("officer"); }
   function kpi(l,v,f,c){ return '<div class="kpi '+(c||"")+'"><div class="lbl">'+esc(l)+'</div><div class="val">'+v+
     '</div><div class="foot">'+(f||"")+'</div></div>'; }
@@ -496,11 +780,11 @@
     var done=0, target=0;
     SURVEYS.forEach(function(f){ done += Math.min(f.target, f.seed+(state.surveyExtra[f.id]||0)); target += f.target; });
 
-    var html = '<div class="view-head"><div><h1>Group Overview</h1><p class="muted">'+esc(CYCLE)+
+    var html = '<div class="view-head"><div>'+eb("Group dashboard")+'<h1>Group Overview</h1><p class="muted">'+esc(CYCLE)+
       ' · '+rows.length+' field officers across '+SBUS.length+' strategic business units.</p></div>'+
       '<div class="row-inline"><span class="pill demo">All figures synthetic</span></div></div>'+flashBox();
 
-    html += '<div class="kpis" style="margin-bottom:1rem">'
+    html += '<div class="kpis">'
       + kpi("Officers on file", grp(rows.length,0), SBUS.length+" business units", "accent")
       + kpi("Average review score", grp(avg,1), "of 100 · weighted rubric")
       + kpi("Plan attainment", pct(sales/(plan||1)), money(sales)+" of "+money(plan), sales>=plan?"good":"warn")
@@ -510,15 +794,18 @@
       + '</div>';
 
     html += '<div class="split">';
-    html += '<div class="card"><h3>Review score by business unit</h3>'+
+    html += '<div class="card">'+eb("Scoring")+
+      '<h3>Review score by business unit</h3>'+
       '<div class="sub">Mean weighted rubric score of the officers mapped to each unit (0–100).</div>'+
       '<div class="chart-box"><canvas id="cSbu"></canvas></div></div>';
-    html += '<div class="card"><h3>Score distribution</h3><div class="sub">Officers per review band.</div>'+
+    html += '<div class="card">'+eb("Distribution")+
+      '<h3>Score distribution</h3><div class="sub">Officers per review band.</div>'+
       '<div class="chart-box"><canvas id="cDist"></canvas></div></div>';
     html += '</div>';
 
-    html += '<div class="split" style="margin-top:1rem">';
-    html += '<div class="card"><h3>Group plan vs realisation</h3>'+
+    html += '<div class="split" style="margin-top:var(--sp-2)">';
+    html += '<div class="card">'+eb("Commercial trend")+
+      '<h3>Group plan vs realisation</h3>'+
       '<div class="sub">Synthetic territory sales summed across the last 12 months, in Crore.</div>'+
       '<div class="chart-box"><canvas id="cTrend"></canvas></div></div>';
 
@@ -532,31 +819,37 @@
         ret: sS? (iS-sS)/sS : 0,
         flags: mine.filter(function(x){ return x.score<55 || x.r.ret_top<0; }).length };
     });
-    html += '<div class="card"><h3>Business unit scorecard</h3><div class="sub">Last 3 closed months rolled up.</div>'+
+    html += '<div class="card">'+eb("Business units")+
+      '<h3>Business unit scorecard</h3><div class="sub">Last 3 closed months rolled up.</div>'+
       '<div class="table-wrap"><table class="tbl"><thead><tr><th>Unit</th><th class="n">Officers</th>'+
       '<th class="n">Attainment</th><th class="n">Return</th><th class="n">Avg score</th><th>Flags</th></tr></thead><tbody>'+
-      sbuRows.map(function(x){ return '<tr><td><b>'+esc(x.s.name)+'</b><br><span class="faint">'+esc(x.s.id)+
+      sbuRows.map(function(x){ return '<tr><td><span class="sw" style="background:'+x.s.color+'"></span><b>'+
+        esc(x.s.name)+'</b><br><span class="faint">'+esc(x.s.id)+
         ' · margin '+pct(x.s.margin)+'</span></td><td class="n">'+x.n+'</td><td class="n">'+pct(x.att)+
         '</td><td class="n">'+xx(x.ret)+'</td><td class="n">'+grp(x.score,1)+'</td><td>'+
         (x.flags? '<span class="pill bad">'+x.flags+' flagged</span>' : '<span class="pill ok">clear</span>')+'</td></tr>'; }).join("")+
       '</tbody></table></div></div>';
     html += '</div>';
 
-    html += '<div class="cols" style="margin-top:1rem">'+
-      '<div class="card"><h3>Watch list</h3><div class="sub">Lowest scoring officers this cycle.</div>'+
+    html += '<div class="cols" style="margin-top:var(--sp-2)">'+
+      '<div class="card">'+eb("Attention")+
+        '<h3>Watch list</h3><div class="sub">Lowest scoring officers this cycle.</div>'+
         rankingTable(rows.slice().sort(function(a,b){ return a.score-b.score; }).slice(0,4))+'</div>'+
-      '<div class="card"><h3>Top performers</h3><div class="sub">Highest scoring officers this cycle.</div>'+
+      '<div class="card">'+eb("Standouts")+
+        '<h3>Top performers</h3><div class="sub">Highest scoring officers this cycle.</div>'+
         rankingTable(rows.slice().sort(function(a,b){ return b.score-a.score; }).slice(0,4))+'</div>'+
       '</div>';
     return html;
   }
   function rankingTable(list){
-    return '<div class="table-wrap"><table class="tbl" style="min-width:520px"><thead><tr><th>Officer</th>'+
+    return '<div class="table-wrap" style="max-height:none"><table class="tbl" style="min-width:520px"><thead><tr><th>Officer</th>'+
       '<th>Unit</th><th class="n">Attainment</th><th class="n">Score</th><th>Band</th></tr></thead><tbody>'+
-      list.map(function(x){ return '<tr class="click" data-open="'+esc(x.off.code)+'"><td><b>'+esc(x.off.name)+
+      list.map(function(x){ return '<tr class="click" tabindex="0" role="button" data-open="'+esc(x.off.code)+
+        '" aria-label="Open review sheet for '+esc(x.off.name)+'"><td><b>'+esc(x.off.name)+
         '</b><br><span class="faint">'+esc(x.off.code)+' · '+esc(x.off.territory)+'</span></td><td>'+
-        esc(SBU_BY[x.off.sbu].name)+'</td><td class="n">'+pct(x.r.attainment)+'</td><td class="n">'+grp(x.score,1)+
-        '</td><td><span class="pill '+(x.band.cls==="info"?"ok":x.band.cls)+'">'+esc(x.band.label)+'</span></td></tr>'; }).join("")+
+        '<span class="sw" style="background:'+SBU_BY[x.off.sbu].color+'"></span>'+
+        esc(SBU_BY[x.off.sbu].name)+'</td><td class="n">'+pct(x.r.attainment)+'</td><td class="n num"><b>'+grp(x.score,1)+
+        '</b></td><td><span class="pill '+pillCls(x.band)+'">'+esc(x.band.label)+'</span></td></tr>'; }).join("")+
       '</tbody></table></div>';
   }
 
@@ -585,8 +878,30 @@
     return out;
   }
   function bandIndexOf(score){ for(var i=0;i<BANDS.length;i++){ if(score>=BANDS[i].min) return i; } return BANDS.length-1; }
-  function th(key,label,right){ return '<th class="sortable'+(right?" n":"")+'" data-sort="'+key+'">'+label+
-    (state.sort===key? (state.dir<0?" ↓":" ↑") : "")+'</th>'; }
+  function th(key,label,right){
+    var on = state.sort===key;
+    return '<th class="sortable'+(right?" n":"")+'" data-sort="'+key+'" tabindex="0"'+
+      (on? ' aria-sort="'+(state.dir<0?"descending":"ascending")+'"':'')+
+      '>'+label+(on? caretSvg(state.dir<0) : "")+'</th>';
+  }
+  function officerCard(o){
+    var r=REVIEW[o.code], sc=officerScore(o.code), b=bandOf(sc), s=SBU_BY[o.sbu];
+    return '<div class="oc b-'+b.cls+'" tabindex="0" role="button" data-open="'+esc(o.code)+
+      '" aria-label="Open review sheet for '+esc(o.name)+'"><span class="bandbar" aria-hidden="true"></span>'+
+      '<div class="oc-top"><span class="oc-av" aria-hidden="true">'+esc(inits(o.name))+'</span>'+
+        '<span><span class="oc-name">'+esc(o.name)+'</span><br>'+
+        '<span class="oc-code">'+esc(o.code)+' · '+esc(o.grade)+'</span></span></div>'+
+      '<div class="chip-row"><span class="pill"><span class="sw" style="background:'+s.color+'"></span>'+
+        esc(s.name.replace("Nexa ",""))+'</span><span class="pill '+pillCls(b)+'">'+esc(b.label)+'</span></div>'+
+      '<div class="oc-stats"><div><div class="k">Review score</div><div class="v">'+grp(sc,1)+'</div></div>'+
+        '<div><div class="k">Attainment</div><div class="v">'+pct(r.attainment)+'</div></div>'+
+        '<div><div class="k">Field return</div><div class="v">'+xx(r.ret_top)+'</div></div></div>'+
+      '<div><div class="mini">Territory coverage '+pct(r.coverage)+'</div>'+
+        '<div class="bar '+(r.coverage>=1?"good":r.coverage<0.88?"bad":"")+'"><i style="width:'+
+        Math.min(100,r.coverage*100).toFixed(0)+'%"></i></div></div>'+
+      '<div class="oc-foot"><span class="oc-code">'+esc(o.territory)+' · '+grp(o.outlets,0)+' outlets</span>'+
+        '<span class="faint" style="font-size:.75rem">Open &rsaquo;</span></div></div>';
+  }
 
   function viewOfficers(){
     var rows = filtered();
@@ -596,39 +911,64 @@
       return '<option value="b'+i+'"'+(state.band==="b"+i?" selected":"")+'>'+esc(b.label)+'</option>'; }).join("")+
       '<option value="flag"'+(state.band==="flag"?" selected":"")+'>Flagged only</option>';
 
-    var html = '<div class="view-head"><div><h1>Field Officer Directory</h1><p class="muted">'+rows.length+' of '+
-      OFFICERS.length+' officers shown. Click any row for the assignment, KPI trend and live review sheet.</p></div>'+
+    var SORTS = [["score","Review score"],["att","Attainment"],["invest","Field return"],
+                 ["visits","Visits closed"],["name","Name (A–Z)"],["sbu","Business unit"]];
+    var sortOpts = SORTS.map(function(k){
+      return '<option value="'+k[0]+'"'+(state.sort===k[0]?" selected":"")+'>'+esc(k[1])+'</option>'; }).join("");
+    var weightChips = RUBRIC.map(function(c){
+      return '<span class="pill">'+esc(c.label.split(" ")[0])+" "+pct(c.weight)+'</span>'; }).join("");
+
+    var html = '<div class="view-head"><div>'+eb("Roster")+'<h1>Field Officer Directory</h1><p class="muted">'+rows.length+' of '+
+      OFFICERS.length+' officers shown. Open an officer for the assignment, KPI trend and live review sheet.</p></div>'+
       '<div class="row-inline"><span class="pill demo">Synthetic roster</span></div></div>'+flashBox();
 
-    html += '<div class="card"><div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:.7rem">'+
+    html += '<div class="card">'+eb("Filters &amp; ordering")+
+      '<div class="filter-grid">'+
       '<div><label for="q">Search</label><input id="q" placeholder="name, code, territory…" value="'+esc(state.q)+'"></div>'+
       '<div><label for="fSbu">Business unit</label><select id="fSbu">'+sbuOpts+'</select></div>'+
-      '<div><label for="fBand">Review band</label><select id="fBand">'+bandOpts+'</select></div></div>'+
-      '<p class="sub muted" style="margin:.7rem 0 0;font-size:.8rem">Weights · '+
-      RUBRIC.map(function(c){ return esc(c.label.split(" ")[0])+" "+pct(c.weight); }).join(" · ")+
-      ' — full definitions on the <b>Review Rubric</b> page.</p></div>';
+      '<div><label for="fBand">Review band</label><select id="fBand">'+bandOpts+'</select></div>'+
+      '<div><label for="fSort">Sort by</label><select id="fSort">'+sortOpts+'</select></div>'+
+      '<div><span class="lbl">Layout</span><div class="seg" role="group" aria-label="Directory layout">'+
+        '<button class="seg-b" type="button" data-roster="cards" aria-pressed="'+(state.roster==="cards")+'">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.6"/><rect x="13" y="3" width="8" height="8" rx="1.6"/><rect x="3" y="13" width="8" height="8" rx="1.6"/><rect x="13" y="13" width="8" height="8" rx="1.6"/></svg>Cards</button>'+
+        '<button class="seg-b" type="button" data-roster="table" aria-pressed="'+(state.roster==="table")+'">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>Table</button>'+
+      '</div></div></div>'+
+      '<div class="chip-row" style="margin-top:14px">'+weightChips+
+        '<span class="faint" style="font-size:.8125rem">weights on the <b>Review Rubric</b> page</span></div></div>';
 
-    html += '<div class="card" style="margin-top:1rem">';
     if(!rows.length){
-      html += '<p class="muted">No officer matches these filters. <button class="btn sm" id="clearFilters">Clear filters</button></p>';
-    } else {
-      html += '<div class="table-wrap"><table class="tbl"><thead><tr>'+th("name","Officer")+
+      html += '<div class="card" style="margin-top:var(--sp-2)"><div class="empty">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16.2 16.2 21 21"/></svg>'+
+        '<b>No officer matches these filters</b><span class="muted" style="font-size:.875rem">The roster is synthetic and fixed at '+
+        OFFICERS.length+' officers — widen the filters to see them again.</span>'+
+        '<button class="btn sm" id="clearFilters">Clear filters</button></div></div>';
+      return html;
+    }
+
+    if(state.roster==="cards"){
+      html += '<div class="oc-grid" style="margin-top:var(--sp-2)">'+rows.map(officerCard).join("")+'</div>';
+      return html;
+    }
+
+    html += '<div class="card" style="margin-top:var(--sp-2)">'+
+      '<div class="table-wrap"><table class="tbl"><thead><tr>'+th("name","Officer")+
         '<th>Assignment</th>'+th("sbu","Unit")+th("visits","Visits (3 mo)",true)+th("att","Attainment",true)+
         th("invest","Field return",true)+th("score","Review score",true)+'<th>Band</th></tr></thead><tbody>'+
         rows.map(function(o){
           var r=REVIEW[o.code], sc=officerScore(o.code), b=bandOf(sc);
-          return '<tr class="click" data-open="'+esc(o.code)+'"><td><b>'+esc(o.name)+'</b><br>'+
+          return '<tr class="click" tabindex="0" role="button" data-open="'+esc(o.code)+
+            '" aria-label="Open review sheet for '+esc(o.name)+'"><td><b>'+esc(o.name)+'</b><br>'+
             '<span class="faint">'+esc(o.code)+' · '+esc(o.grade)+'</span></td>'+
             '<td>'+esc(o.territory)+'<br><span class="faint">'+grp(o.outlets,0)+' outlets · '+esc(o.lines)+'</span></td>'+
-            '<td>'+esc(SBU_BY[o.sbu].name)+'</td>'+
+            '<td><span class="sw" style="background:'+SBU_BY[o.sbu].color+'"></span>'+esc(SBU_BY[o.sbu].name)+'</td>'+
             '<td class="n">'+grp(r.visitsDone,0)+'<div class="bar '+(r.coverage>=1?"good":r.coverage<0.88?"bad":"")+
               '" style="margin-top:.3rem"><i style="width:'+Math.min(100,r.coverage*100).toFixed(0)+'%"></i></div></td>'+
             '<td class="n">'+pct(r.attainment)+'</td><td class="n">'+xx(r.ret_top)+'</td>'+
-            '<td class="n"><b>'+grp(sc,1)+'</b></td><td><span class="pill '+(b.cls==="info"?"ok":b.cls)+'">'+
+            '<td class="n num"><b>'+grp(sc,1)+'</b></td><td><span class="pill '+pillCls(b)+'">'+
               esc(b.label)+'</span></td></tr>';
-        }).join("")+'</tbody></table></div>';
-    }
-    return html+'</div>';
+        }).join("")+'</tbody></table></div></div>';
+    return html;
   }
 
   /* ----------------------------- officer detail ----------------------------- */
@@ -640,24 +980,29 @@
     var initials = off.name.split(" ").map(function(x){ return x.slice(0,1); }).join("").slice(0,2).toUpperCase();
     var myForms = SURVEYS.filter(function(f){ return f.sbu===off.sbu; });
 
-    var html = '<div class="view-head"><div class="row-inline">'+
-      '<button class="btn sm" data-goto="officers">← All officers</button>'+
-      '<span class="pill info">'+esc(off.code)+'</span></div>'+
-      '<p class="muted">'+esc(CYCLE)+' · data generated in the browser.</p></div>'+flashBox();
+    var html = '<div class="view-head"><div>'+eb("Officer review sheet")+
+      '<div class="row-inline" style="margin-bottom:6px">'+
+      '<button class="btn sm" data-goto="officers"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>All officers</button>'+
+      '<span class="pill info">'+esc(off.code)+'</span>'+
+      '<span class="pill"><span class="sw" style="background:'+SBU_BY[off.sbu].color+'"></span>'+esc(SBU_BY[off.sbu].name)+'</span></div>'+
+      '<h1 style="margin-bottom:2px">'+esc(off.name)+'</h1>'+
+      '<p class="muted">'+esc(off.grade)+' · '+esc(off.territory)+' · '+esc(CYCLE)+' — data generated in the browser.</p></div>'+
+      '<div class="row-inline"><span class="pill demo">Synthetic profile</span></div></div>'+flashBox();
 
-    html += '<div class="card"><div class="prof"><div class="av">'+esc(initials)+'</div>'+
-      '<div><h2 style="margin-bottom:.1rem">'+esc(off.name)+'</h2><p class="muted">'+esc(off.grade)+' · '+
-      esc(SBU_BY[off.sbu].name)+' · '+esc(off.territory)+' <span class="pill ok">Active (demo)</span></p></div>'+
+    html += '<div class="card">'+eb("Assignment")+
+      '<div class="prof"><div class="av" aria-hidden="true">'+esc(initials)+'</div>'+
+      '<div><h2 style="margin-bottom:.1rem">'+esc(off.code)+' · '+esc(off.grade)+'</h2><p class="muted">'+
+      esc(off.lines)+' · '+grp(off.outlets,0)+' mapped outlets <span class="pill ok">Active (demo)</span></p></div>'+
       '<div style="flex:1"></div><div style="text-align:right">'+
-      '<div class="faint" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700">Weighted review score</div>'+
-      '<div style="font-size:2rem;font-weight:900;letter-spacing:-.03em">'+grp(sc,1)+
+      '<div class="mini" style="justify-content:flex-end">Weighted review score</div>'+
+      '<div class="num" style="font-family:var(--font-head);font-variant-numeric:tabular-nums;font-size:2rem;font-weight:700;letter-spacing:-.03em">'+grp(sc,1)+
       '<span class="faint" style="font-size:.9rem">/100</span></div>'+
-      '<span class="pill '+(b.cls==="info"?"ok":b.cls)+'">'+esc(b.label)+'</span></div></div>'+
+      '<span class="pill '+pillCls(b)+'">'+esc(b.label)+'</span></div></div>'+
       '<div class="facts">'+ fact("Territory assignment", off.territory)+ fact("Outlets covered", grp(off.outlets,0)+" mapped")+
       fact("Product lines", off.lines)+ fact("Reports to", off.reportsTo)+ fact("In role since", off.joined)+
       fact("Monthly plan", money(off.tgt.sales))+'</div></div>';
 
-    html += '<div class="kpis" style="margin:1rem 0">'+
+    html += '<div class="kpis" style="margin:var(--sp-2) 0">'+
       kpi("Visits closed (3 mo)", grp(r.visitsDone,0), pct(r.coverage)+" of plan")
       + kpi("Sales realisation", money(r.salesActual), pct(r.attainment)+" of "+money(r.salesTarget), r.attainment>=1?"good":"warn")
       + kpi("Field return", xx(r.ret_top), money(r.increment)+" on "+money(r.spend)+" spend", r.ret_top>=0?"accent":"bad")
@@ -666,42 +1011,46 @@
       + '</div>';
 
     html += '<div class="split">';
-    html += '<div class="card"><h3>KPI trend — last 12 months</h3>'+
+    html += '<div class="card">'+eb("Activity trend")+
+      '<h3>KPI trend — last 12 months</h3>'+
       '<div class="sub">Bars: visits closed. Line: sales realisation against the monthly plan.</div>'+
       '<div class="chart-box"><canvas id="cOffTrend"></canvas></div>'+
-      '<div class="legend"><span><span class="dot" style="background:#c7d2fe"></span>Visits closed</span>'+
-      '<span><span class="dot" style="background:#4f46e5"></span>Attainment %</span></div>'+
-      '<p class="faint" style="font-size:.76rem;margin-top:.6rem">Latest closed month '+esc(cur.label)+
+      '<div class="legend"><span><span class="dot" style="background:var(--c1)"></span>Visits closed</span>'+
+      '<span><span class="dot" style="background:var(--c2)"></span>Attainment %</span></div>'+
+      '<p class="faint" style="font-size:.8125rem;margin-top:10px">Latest closed month '+esc(cur.label)+
       ' · '+grp(cur.visits_done,0)+' visits, '+money(cur.sales_actual)+' realised, return '+xx(cur.ret_top)+'.</p></div>';
 
-    html += '<div class="card"><h3>Review scorecard</h3>'+
+    html += '<div class="card">'+eb("Live rubric")+
+      '<h3>Review scorecard</h3>'+
       '<div class="sub">Move any rating — the weighted score, band and recommendation recompute instantly in the browser.</div>'+
-      '<div class="table-wrap" style="border:none"><table class="tbl" style="min-width:0;font-size:.8rem"><tbody>'+
+      '<div class="table-wrap" style="border:none;background:transparent;max-height:none"><table class="tbl" style="min-width:0;font-size:.875rem"><tbody>'+
       RUBRIC.map(function(c){
         var a = r.auto[c.key];
-        return '<tr><td style="width:42%"><b>'+esc(c.label)+'</b><br><span class="faint" style="font-size:.74rem">'+
+        return '<tr><td style="width:40%"><b>'+esc(c.label)+'</b><br><span class="faint" style="font-size:.78rem">'+
           pct(c.weight)+' weight · '+esc(a.e)+'</span></td>'+
-          '<td style="width:22%"><input type="range" min="1" max="5" step="1" data-key="'+c.key+
-          '" value="'+rt[c.key]+'"></td>'+
+          '<td style="width:26%"><div class="slider-cell"><input type="range" min="1" max="5" step="1" data-key="'+c.key+
+          '" value="'+rt[c.key]+'" aria-label="'+esc(c.label)+' rating, 1 to 5">'+
+          '<span class="ticks">1–5</span></div></td>'+
           '<td class="n" style="width:11%"><span class="rate-val" data-out="'+c.key+'">'+rt[c.key]+'</span>'+
           '<span class="faint">/5</span></td>'+
-          '<td class="n" style="width:25%"><b data-pts="'+c.key+'">'+grp((rt[c.key]/5)*c.weight*100,1)+'</b> pts '+
+          '<td class="n" style="width:23%"><b data-pts="'+c.key+'">'+grp((rt[c.key]/5)*c.weight*100,1)+'</b> pts '+
           (ov[c.key]!=null? '<span class="pill warn" data-badge="'+c.key+'">manual</span>'
                           : '<span class="faint" data-badge="'+c.key+'">auto</span>')+'</td></tr>';
       }).join("")+'</tbody></table></div>'+
-      '<div class="gauge" style="margin-top:.9rem;border-top:1px solid var(--line-soft);padding-top:.9rem">'+
-      '<div><div class="num" id="scNum">'+grp(sc,1)+'</div><div class="faint" style="font-size:.7rem">OF 100</div></div>'+
-      '<div style="flex:1"><span class="pill '+(b.cls==="info"?"ok":b.cls)+'" id="scBand">'+esc(b.label)+'</span>'+
-      '<p class="muted" id="scAction" style="font-size:.83rem;margin-top:.4rem">'+esc(b.action)+'</p>'+
-      '<p class="faint" id="scAuto" style="font-size:.76rem">Auto-derived score from the KPI window: '+grp(autoSc,1)+
+      '<div class="gauge" style="margin-top:14px;border-top:1px solid var(--line-soft);padding-top:14px">'+
+      '<div><div class="num" id="scNum">'+grp(sc,1)+'</div><div class="mini" style="margin-top:4px">of 100</div></div>'+
+      '<div style="flex:1"><span class="pill '+pillCls(b)+'" id="scBand">'+esc(b.label)+'</span>'+
+      '<p class="muted" id="scAction" style="font-size:.875rem;margin-top:.4rem">'+esc(b.action)+'</p>'+
+      '<p class="faint" id="scAuto" style="font-size:.8125rem">Auto-derived score from the KPI window: '+grp(autoSc,1)+
       ' · overrides stay in this browser.</p></div></div>'+
-      '<div class="row-inline" style="margin-top:.8rem">'+
+      '<div class="row-inline" style="margin-top:14px">'+
       '<button class="btn sm primary" id="saveReview">Save review sheet</button>'+
       '<button class="btn sm" id="autoReview">Reset to auto-derived</button></div></div>';
     html += '</div>';
 
-    html += '<div class="split" style="margin-top:1rem">';
-    html += '<div class="card"><h3>Field investment detail</h3>'+
+    html += '<div class="split" style="margin-top:var(--sp-2)">';
+    html += '<div class="card">'+eb("Investment engine")+
+      '<h3>Field investment detail</h3>'+
       '<div class="sub">Last 6 closed months. Increment <span class="kbd">I = F − B</span> · profit '+
       '<span class="kbd">N = I × margin</span> · return <span class="kbd">(I − O) / O</span>.</div>'+
       '<div class="table-wrap"><table class="tbl"><thead><tr><th>Month</th><th class="n">Sales (F)</th>'+
@@ -714,28 +1063,30 @@
           '</b></td><td class="n">'+xx(m.ret_bottom)+'</td></tr>'; }).join("")+
       '</tbody></table></div></div>';
 
-    html += '<div class="card"><h3>Survey &amp; link workflow</h3>'+
+    html += '<div class="card">'+eb("Field workflow")+
+      '<h3>Survey &amp; link workflow</h3>'+
       '<div class="sub">Forms issued to officers in '+esc(SBU_BY[off.sbu].name)+'. In the live portal the link and its '+
       'response feed came from the hosted backend; here they are demo records.</div>'+
       myForms.map(function(f){
         var done = Math.min(f.target, Math.round(f.seed*0.32)) + (state.surveyExtra[f.id]||0);
         var p = done/f.target;
-        return '<div style="padding:.55rem 0;border-bottom:1px solid var(--line-soft)">'+
-          '<div class="row-inline" style="justify-content:space-between"><b style="font-size:.86rem">'+esc(f.title)+
+        return '<div style="padding:.7rem 0;border-bottom:1px solid var(--line-soft)">'+
+          '<div class="row-inline" style="justify-content:space-between"><b style="font-size:.9375rem">'+esc(f.title)+
           '</b><span class="pill '+(p>=0.85?"ok":"")+'">'+pct(p)+' closed</span></div>'+
-          '<div class="faint" style="font-size:.76rem">'+esc(f.kind)+' · due '+esc(f.due)+' · '+
+          '<div class="faint" style="font-size:.8125rem">'+esc(f.kind)+' · due '+esc(f.due)+' · '+
           '<span class="link-chip">nexafield.demo/'+esc(f.id)+'</span></div>'+
-          '<div class="bar '+(p>=0.85?"good":p<0.5?"bad":"")+'" style="margin:.35rem 0"><i style="width:'+
+          '<div class="bar '+(p>=0.85?"good":p<0.5?"bad":"")+'" style="margin:.45rem 0"><i style="width:'+
           Math.min(100,p*100).toFixed(0)+'%"></i></div>'+
           '<div class="row-inline"><button class="btn sm" data-resp="'+esc(f.id)+'">Log '+esc(off.code)+
-          ' response</button><span class="faint" style="font-size:.76rem">'+grp(done,0)+' of '+grp(f.target,0)+
+          ' response</button><span class="faint" style="font-size:.8125rem">'+grp(done,0)+' of '+grp(f.target,0)+
           ' responses</span></div></div>';
       }).join("")+
-      '<p class="faint" style="font-size:.76rem;margin-top:.6rem">Demo links are inert by design — nothing opens or '+
+      '<p class="faint" style="font-size:.8125rem;margin-top:10px">Demo links are inert by design — nothing opens or '+
       'submits outside this page.</p></div>';
     html += '</div>';
 
-    html += '<div class="card" style="margin-top:1rem"><h3>Monthly report log</h3>'+
+    html += '<div class="card" style="margin-top:var(--sp-2)">'+eb("Reporting discipline")+
+      '<h3>Monthly report log</h3>'+
       '<div class="sub">Latest 6 field reports as recorded in the demo dataset.</div>'+
       '<div class="table-wrap"><table class="tbl" style="min-width:560px"><thead><tr><th>Month</th><th class="n">Visits</th>'+
       '<th class="n">Forms</th><th class="n">Reports on time</th><th class="n">Intel items</th><th>Status</th></tr></thead><tbody>'+
@@ -760,21 +1111,23 @@
       var owners = OFFICERS.filter(function(o){ return o.sbu===f.sbu; });
       return '<tr><td><b>'+esc(f.title)+'</b><br><span class="faint">'+esc(f.id)+' · '+esc(f.kind)+
         ' · due '+esc(f.due)+'</span></td>'+
-        '<td><span class="pill info">'+esc(s.name)+'</span><br><span class="faint" style="font-size:.74rem">'+
+        '<td><span class="pill"><span class="sw" style="background:'+s.color+'"></span>'+esc(s.name)+'</span>'+
+        '<br><span class="faint" style="font-size:.8125rem">'+
         owners.map(function(o){ return esc(o.code); }).join(", ")+'</span></td>'+
         '<td style="width:210px"><div class="bar '+(p>=0.85?"good":p<0.5?"bad":"")+'"><i style="width:'+
-        Math.min(100,p*100).toFixed(0)+'%"></i></div><span class="faint" style="font-size:.74rem">'+grp(c,0)+
+        Math.min(100,p*100).toFixed(0)+'%"></i></div><span class="faint" style="font-size:.8125rem">'+grp(c,0)+
         ' / '+grp(f.target,0)+'</span></td>'+
         '<td><span class="link-chip">nexafield.demo/'+esc(f.id)+'</span></td>'+
         '<td class="n"><button class="btn sm" data-resp="'+esc(f.id)+'">Simulate response</button></td></tr>';
     }).join("");
-    return '<div class="view-head"><div><h1>Surveys &amp; Field Links</h1><p class="muted">Issue tracking for the '+
-      'questionnaires officers complete on route. '+grp(done,0)+' of '+grp(target,0)+' responses closed this cycle.</p></div>'+
+    return '<div class="view-head"><div>'+eb("Issue tracking")+'<h1>Surveys &amp; Field Links</h1><p class="muted">Questionnaires officers '+
+      'complete on route. '+grp(done,0)+' of '+grp(target,0)+' responses closed this cycle.</p></div>'+
       '<div class="row-inline"><span class="pill demo">Links are inert in the demo</span></div></div>'+flashBox()+
       '<div class="defbox"><b>How the workflow ran:</b> a reviewer issues a form, the link is pushed to the officers '+
       'mapped to that unit, and each submission closes one planned response — feeding the reporting-discipline criterion '+
       'in the rubric. In this static demo the link, the submission and the roll-up are simulated client-side.</div>'+
-      '<div class="card"><div class="table-wrap"><table class="tbl"><thead><tr><th>Form</th><th>Unit &amp; owners</th>'+
+      '<div class="card">'+eb("Forms this cycle")+
+      '<h3>Issued forms</h3><div class="table-wrap"><table class="tbl"><thead><tr><th>Form</th><th>Unit &amp; owners</th>'+
       '<th>Progress</th><th>Demo link</th><th class="n">Action</th></tr></thead><tbody>'+body+'</tbody></table></div></div>';
   }
 
@@ -782,29 +1135,43 @@
   function viewRubric(){
     var bands = BANDS.map(function(b,i){
       var lo = b.min<0?0:b.min, hi = i===0?100:BANDS[i-1].min-1;
-      return '<tr><td><span class="pill '+(b.cls==="info"?"ok":b.cls)+'">'+esc(b.label)+'</span></td>'+
-        '<td class="n">'+lo+' – '+hi+'</td><td>'+esc(b.action)+'</td></tr>';
+      return '<tr><td><span class="pill '+pillCls(b)+'">'+esc(b.label)+'</span></td>'+
+        '<td class="n num">'+lo+' – '+hi+'</td><td>'+esc(b.action)+'</td></tr>';
     }).join("");
-    return '<div class="view-head"><div><h1>Review Rubric &amp; Formulas</h1><p class="muted">The scoring model the '+
-      'portal applies to every officer, exactly as it is coded in this demo.</p></div></div>'+
+    var maxW = RUBRIC.reduce(function(a,c){ return Math.max(a,c.weight); },0);
+    return '<div class="view-head"><div>'+eb("Methodology")+'<h1>Review Rubric &amp; Formulas</h1>'+
+      '<p class="muted">The scoring model the portal applies to every officer, exactly as it is coded in this demo.</p></div>'+
+      '<div class="row-inline"><span class="pill demo">Model, not measurement</span></div></div>'+
       '<div class="defbox">Weighted score = &Sigma; (rating &divide; 5) &times; weight &times; 100, so a sheet fully '+
       'scored at 5 totals 100. Ratings start auto-derived from the KPI window (last 3 closed months) and can be '+
       'overridden by the reviewer; both paths run in this browser.</div>'+
-      '<div class="card"><h3>Criteria and weights</h3><div class="table-wrap"><table class="tbl"><thead><tr>'+
+      '<div class="card">'+eb("Scoring model")+
+      '<h3>Criteria and weights</h3><div class="sub">Six criteria, weights summing to 100%. Each auto-rating maps one '+
+      'observed KPI onto the 1–5 scale.</div>'+
+      '<div class="table-wrap"><table class="tbl"><thead><tr>'+
       '<th>Criterion</th><th class="n">Weight</th><th>What the portal looks at</th><th>Auto-rating rule</th></tr></thead><tbody>'+
-      RUBRIC.map(function(c){ return '<tr><td><b>'+esc(c.label)+'</b></td><td class="n">'+pct(c.weight)+'</td><td>'+
-        esc(c.guide)+'</td><td class="muted" style="font-size:.78rem">'+esc(ruleOf(c.key))+'</td></tr>'; }).join("")+
+      RUBRIC.map(function(c){ return '<tr><td><b>'+esc(c.label)+'</b></td>'+
+        '<td class="n num" style="white-space:nowrap">'+pct(c.weight)+
+        '<div class="bar" style="margin-top:.35rem"><i style="width:'+((c.weight/maxW)*100).toFixed(0)+'%"></i></div></td>'+
+        '<td>'+esc(c.guide)+'</td><td class="muted" style="font-size:.8125rem">'+esc(ruleOf(c.key))+'</td></tr>'; }).join("")+
+      '<tr><td><b>Total</b></td><td class="n num">100.0%</td><td colspan="2" class="faint">Every criterion is rated 1–5, '+
+      'so each contributes (rating&divide;5)&times;weight of the 100-point sheet.</td></tr>'+
       '</tbody></table></div></div>'+
-      '<div class="card"><h3>Field investment engine</h3>'+
+      '<div class="card" id="methodology">'+eb("Return on field spend")+
+      '<h3>Field investment engine</h3>'+
       '<div class="sub">Ported from the original Python calculation module — now plain JavaScript on synthetic inputs.</div>'+
       '<div class="formula">B = baseline (organic run-rate; falls back to same period last year)<br>'+
       'I = F − B&nbsp;&nbsp;(marketing-led increment)<br>'+
       'N = I × margin&nbsp;&nbsp;(increment profit)<br>'+
       'return_top = (I − O) / O<br>'+
       'return_bottom = (N − O) / O&nbsp;&nbsp;where O = field spend pool</div>'+
-      '<p class="muted" style="font-size:.83rem;margin-top:.7rem">A top-line return of 2.00x means the increment was '+
-      'three times the spend deployed. Negative returns are surfaced on the watch list rather than hidden.</p></div>'+
-      '<div class="card"><h3>Bands and outcomes</h3><div class="table-wrap"><table class="tbl" style="min-width:520px">'+
+      '<p class="muted" style="font-size:.875rem;margin-top:12px">A top-line return of 2.00x means the increment was '+
+      'three times the spend deployed. Multiplying the increment by the unit margin (N) is the normalisation step: it puts '+
+      'a cement tonne and a kilowatt-hour on the same profit axis before they are compared. Negative returns are surfaced '+
+      'on the watch list rather than hidden.</p></div>'+
+      '<div class="card">'+eb("Outcomes")+
+      '<h3>Bands and recommendations</h3><div class="sub">The band drives the recommendation shown on every review sheet.</div>'+
+      '<div class="table-wrap"><table class="tbl" style="min-width:520px">'+
       '<thead><tr><th>Band</th><th class="n">Score</th><th>Standard recommendation</th></tr></thead><tbody>'+
       bands+'</tbody></table></div></div>';
   }
@@ -819,7 +1186,12 @@
 
   /* ================================ charts ================================ */
   function drawCharts(){
-    if(!window.Chart) return;
+    if(!window.Chart){
+      all(".chart-box").forEach(function(b){ b.classList.add("no-chart"); });
+      return;
+    }
+    applyChartDefaults();
+    var pal = PAL();
     if(state.tab==="dashboard"){
       var names = SBUS.map(function(s){ return s.name.replace("Nexa ",""); });
       var scores = SBUS.map(function(s){
@@ -828,41 +1200,51 @@
       });
       mkChart("cSbu",{ type:"bar",
         data:{ labels:names, datasets:[{ label:"Avg review score", data:scores,
-          backgroundColor:SBUS.map(function(s){ return s.color; }), borderRadius:6 }] },
-        options: baseOpts({ plugins:{ legend:{ display:false } },
-          scales:{ x:{ grid:{ display:false }, ticks:{ font:{ size:11 } } },
-                   y:{ beginAtZero:true, max:100, grid:{ color:"#eef2f7" }, ticks:{ font:{ size:10 } } } } }) });
+          backgroundColor:SBUS.map(function(s){ return s.color; }), borderRadius:6, maxBarThickness:64 }] },
+        options: baseOpts({ plugins:{ legend:{ display:false },
+            tooltip:{ callbacks:{ label:function(c){ return "Avg review score "+grp(c.parsed.y,1)+" / 100"; } } } },
+          scales:{ x:{ grid:{ display:false }, ticks:{ font:fontSpec(12), color:cssVar("--ink-2") } },
+                   y:{ beginAtZero:true, max:100 } } }) });
 
       var counts = BANDS.map(function(b){
         return OFFICERS.filter(function(o){ return bandIndexOf(officerScore(o.code))===BANDS.indexOf(b); }).length;
       });
+      var bandCols = [cssVar("--ok"), cssVar("--c7"), cssVar("--c1"), cssVar("--warn"), cssVar("--bad")];
       mkChart("cDist",{ type:"doughnut",
         data:{ labels:BANDS.map(function(b){ return b.label; }),
-          datasets:[{ data:counts, backgroundColor:["#0a7d33","#4f46e5","#0ea5e9","#f59e0b","#c0392b"], borderWidth:0 }] },
-        options: baseOpts({ cutout:"58%", scales:{ x:{ display:false }, y:{ display:false } },
-          plugins:{ legend:{ position:"right", labels:{ boxWidth:11, font:{ size:11 } } } } }) });
+          datasets:[{ data:counts, backgroundColor:bandCols, borderColor:cssVar("--surface"),
+            borderWidth:2, hoverOffset:6 }] },
+        options: baseOpts({ cutout:"62%", scales:{ x:{ display:false }, y:{ display:false } },
+          plugins:{ legend:{ position:"right", labels:{ boxWidth:11, boxHeight:11, usePointStyle:true,
+            pointStyle:"rectRounded", color:cssVar("--ink-2"), font:fontSpec(12), padding:12 } },
+            tooltip:{ callbacks:{ label:function(c){ return c.label+": "+c.parsed+" officer"+(c.parsed===1?"":"s"); } } } } }) });
 
       var labels = seriesFor(OFFICERS[0]).map(function(m){ return m.label; });
       function totalAt(i,k){ return OFFICERS.reduce(function(a,o){ return a + seriesFor(o.code)[i][k]; },0)/1e7; }
       mkChart("cTrend",{ type:"line",
         data:{ labels:labels, datasets:[
           { label:"Realisation (Cr)", data:labels.map(function(_,i){ return Math.round(totalAt(i,"sales_actual")*100)/100; }),
-            borderColor:"#4f46e5", backgroundColor:"rgba(79,70,229,.10)", fill:true, tension:.3, pointRadius:2, borderWidth:2 },
+            borderColor:pal[0], backgroundColor:cssVar("--brand-soft"), fill:true, tension:.3,
+            pointRadius:2, pointHoverRadius:5, pointBackgroundColor:pal[0], borderWidth:2 },
           { label:"Plan (Cr)", data:labels.map(function(_,i){ return Math.round(totalAt(i,"sales_target")*100)/100; }),
-            borderColor:"#94a3b8", borderDash:[5,4], pointRadius:0, tension:.3, borderWidth:2 }
-        ] }, options: baseOpts() });
+            borderColor:pal[7], backgroundColor:"transparent", borderDash:[5,4], pointRadius:0,
+            pointHoverRadius:4, tension:.3, borderWidth:2 }
+        ] }, options: baseOpts({ plugins:{ tooltip:{ callbacks:{ label:function(c){
+              return c.dataset.label+": BDT "+grp(c.parsed.y,2)+" Cr"; } } } } }) });
     }
     if(state.tab==="officer"){
       var s = seriesFor(OFF_BY[state.selected]);
       mkChart("cOffTrend",{ data:{ labels:s.map(function(m){ return m.label; }), datasets:[
         { type:"bar", label:"Visits closed", data:s.map(function(m){ return m.visits_done; }),
-          backgroundColor:"#c7d2fe", borderRadius:5, yAxisID:"y" },
+          backgroundColor:pal[0], borderRadius:5, maxBarThickness:34, yAxisID:"y" },
         { type:"line", label:"Attainment %", data:s.map(function(m){ return Math.round(m.sales_actual/m.sales_target*1000)/10; }),
-          borderColor:"#4f46e5", backgroundColor:"#4f46e5", tension:.3, pointRadius:2, borderWidth:2, yAxisID:"y1" }
+          borderColor:pal[1], backgroundColor:pal[1], tension:.3, pointRadius:2, pointHoverRadius:5, borderWidth:2, yAxisID:"y1" }
       ] }, options: baseOpts({ scales:{
-        x:{ grid:{ display:false }, ticks:{ font:{ size:9 }, maxRotation:0, autoSkip:true } },
-        y:{ position:"left", grid:{ color:"#eef2f7" }, ticks:{ font:{ size:10 } } },
-        y1:{ position:"right", grid:{ display:false }, ticks:{ font:{ size:10 }, callback:function(v){ return v+"%"; } } }
+        x:{ grid:{ display:false }, ticks:{ font:fontSpec(10), maxRotation:0, autoSkip:true } },
+        y:{ position:"left", title:{ display:true, text:"Visits", color:cssVar("--ink-3"), font:fontSpec(11) } },
+        y1:{ position:"right", grid:{ display:false },
+             ticks:{ font:fontSpec(11), color:cssVar("--ink-3"), callback:function(v){ return v+"%"; } },
+             title:{ display:true, text:"Attainment", color:cssVar("--ink-3"), font:fontSpec(11) } }
       } }) });
     }
   }
@@ -884,7 +1266,7 @@
     var sc = scoreOf(code, rt), b = bandOf(sc), autoSc = scoreOf(code, autoMap(code));
     var num=$("#scNum"), bandEl=$("#scBand"), act=$("#scAction"), au=$("#scAuto");
     if(num) num.textContent = grp(sc,1);
-    if(bandEl){ bandEl.className = "pill "+(b.cls==="info"?"ok":b.cls); bandEl.textContent = b.label; }
+    if(bandEl){ bandEl.className = "pill "+pillCls(b); bandEl.textContent = b.label; }
     if(act) act.textContent = b.action;
     if(au) au.textContent = "Auto-derived score from the KPI window: "+grp(autoSc,1)+" · overrides stay in this browser.";
   }
@@ -892,9 +1274,19 @@
   /* ================================ events ================================ */
   document.addEventListener("input", function(e){
     var t = e.target;
-    if(t.id==="q"){ state.q=t.value; if(state.tab==="officers"){ render(); var f=$("#q"); if(f) f.focus(); } return; }
+    if(t.id==="q"){
+      state.q=t.value;
+      if(state.tab==="officers"){
+        var pos = t.selectionStart; render();
+        var f=$("#q"); if(f){ f.focus(); try{ f.setSelectionRange(pos,pos); }catch(err){} }
+      }
+      return;
+    }
     if(t.id==="fSbu"){ state.sbu=t.value; render(); return; }
     if(t.id==="fBand"){ state.band=t.value; render(); return; }
+    if(t.id==="fSort"){
+      var sk=t.value; state.sort=sk; state.dir=(sk==="name"||sk==="sbu")?1:-1; render(); return;
+    }
     if(t.type==="range" && t.getAttribute("data-key")){
       if(!state.overrides[state.selected]) state.overrides[state.selected]={};
       state.overrides[state.selected][t.getAttribute("data-key")] = Number(t.value);
@@ -907,10 +1299,11 @@
   document.addEventListener("click", function(e){
     var host = e.target.closest ? e.target : null;
     if(!host) return;
-    var sel = "[data-tab],[data-open],[data-goto],[data-sort],[data-resp],#resetDemo,#autoReview,#saveReview,#clearFilters";
+    var sel = "[data-tab],[data-open],[data-goto],[data-sort],[data-resp],[data-roster],#resetDemo,#autoReview,#saveReview,#clearFilters";
     var el = (host.closest && host.closest(sel)) || (host.id==="resetDemo"? host : null);
     if(!el) return;
     if(el.hasAttribute("data-tab")){ setTab(el.getAttribute("data-tab")); return; }
+    if(el.hasAttribute("data-roster")){ state.roster=el.getAttribute("data-roster"); render(); return; }
     if(el.id==="resetDemo"){
       try{ localStorage.removeItem(LS_KEY); }catch(err){}
       state.overrides={}; state.surveyExtra={};
@@ -938,6 +1331,17 @@
       persist(); flash("Review sheet saved in this browser only (localStorage). No server was contacted.","ok"); render(); return;
     }
   });
+  /* keyboard parity for the clickable rows / cards / sort headers */
+  document.addEventListener("keydown", function(e){
+    if(e.key!=="Enter" && e.key!==" " && e.key!=="Spacebar") return;
+    var t = e.target; if(!t || !t.closest) return;
+    var tag = t.tagName;
+    if(tag==="INPUT" || tag==="SELECT" || tag==="TEXTAREA" || tag==="BUTTON" || tag==="A") return;
+    var el = t.closest("[data-open],[data-sort]");
+    if(!el) return;
+    e.preventDefault(); el.click();
+  });
+  all(".js-theme").forEach(function(b){ b.addEventListener("click", toggleTheme); });
 
   $("#fillDemo").addEventListener("click", function(){
     $("#user").value="officer.demo"; $("#pass").value="demo1234"; $("#loginErr").textContent="";
@@ -946,7 +1350,7 @@
   $("#loginForm").addEventListener("submit", function(e){
     e.preventDefault();
     var u = $("#user").value.trim();
-    if(!u){ $("#loginErr").textContent="Type any username — the demo accepts anything."; return; }
+    if(!u){ $("#loginErr").textContent="Type any portal ID — the demo accepts anything."; return; }
     doLogin(u);
   });
   $("#signout").addEventListener("click", doLogout);
@@ -954,7 +1358,9 @@
   /* ================================= boot ================================= */
   restore();
   $("#login").hidden=false; $("#app").hidden=true;
-  if(window.Chart){ Chart.defaults.font.family = getComputedStyle(document.body).fontFamily; }
+  var savedTheme = null; try{ savedTheme = localStorage.getItem(LS_THEME); }catch(e){}
+  document.documentElement.setAttribute("data-theme", savedTheme==="light" ? "light" : "dark");
+  applyChartDefaults();
 })();
 </script>
 </body>
