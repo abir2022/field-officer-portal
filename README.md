@@ -1,3 +1,5 @@
+![Field Officer Portal](assets/banner.svg)
+
 # NexaField — Field Officer Performance Portal (demo)
 
 A single self-contained `index.html` that rebuilds an internal field-force review
